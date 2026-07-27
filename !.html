@@ -1,0 +1,120 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <title>文件</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{font-family:system-ui,sans-serif;background:#f5f5f5;padding:12px;}
+        .box{background:#fff;border-radius:10px;padding:16px;}
+        .title{text-align:center;font-size:18px;margin-bottom:15px;color:#333;}
+        .read{min-height:70vh;padding:15px;line-height:2.1;font-size:18px;background:#ffffff;border-radius:8px;white-space:pre-wrap;margin-bottom:15px;}
+        .ctrl{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;align-items:center;margin-bottom:12px;}
+        button{padding:11px 14px;border:none;background:#2979ff;color:#fff;border-radius:6px;font-size:16px;}
+        button:disabled{background:#b8d4f5;}
+        #jump{width:70px;padding:10px;text-align:center;border:1px solid #ddd;border-radius:6px;font-size:16px;}
+        .page-info{text-align:center;color:#666;font-size:15px;margin:8px 0;}
+        #file{display:none;}
+        .sel-btn{display:block;width:fit-content;margin:0 auto 15px;padding:10px 20px;background:#4299e1;color:#fff;border-radius:6px;}
+    </style>
+</head>
+<body>
+    <div class="box">
+        <div class="title">文件</div>
+
+        <div class="sel-btn" id="selBtn">打开文件</div>
+        <input type="file" id="file" accept=".txt">
+
+        <div class="read" id="content">无</div>
+        <div class="page-info" id="pageInfo"></div>
+
+        <div class="ctrl">
+            <button id="prev">上一页</button>
+            <input type="number" id="jump" placeholder="页码" min="1">
+            <button id="go">跳转</button>
+            <button id="next">下一页</button>
+        </div>
+    </div>
+
+<script>
+const PER_PAGE = 700;
+let bookText = "";
+let maxPage = 0;
+// 从本地存储读取上次记忆页码
+let nowPage = parseInt(localStorage.getItem("readPage")) || 1;
+
+const selBtn = document.getElementById("selBtn");
+const fileInp = document.getElementById("file");
+const content = document.getElementById("content");
+const pageInfo = document.getElementById("pageInfo");
+const prevBtn = document.getElementById("prev");
+const nextBtn = document.getElementById("next");
+const jumpInp = document.getElementById("jump");
+const goBtn = document.getElementById("go");
+
+selBtn.onclick = () => fileInp.click();
+
+// 读取大TXT文件
+fileInp.onchange = e => {
+    let f = e.target.files[0];
+    if(!f) return;
+    let reader = new FileReader();
+    reader.readAsText(f, "UTF-8");
+    reader.onload = res => {
+        bookText = res.target.result;
+        maxPage = Math.ceil(bookText.length / PER_PAGE);
+        // 矫正页码不越界
+        if(nowPage > maxPage) nowPage = maxPage;
+        if(nowPage < 1) nowPage = 1;
+        render();
+    };
+};
+
+// 渲染页面 + 自动存页码
+function render(){
+    let start = (nowPage - 1) * PER_PAGE;
+    let end = start + PER_PAGE;
+    content.innerText = bookText.slice(start, end);
+
+    pageInfo.innerText = `第 ${nowPage} 页 / 共 ${maxPage} 页`;
+    jumpInp.value = nowPage;
+
+    prevBtn.disabled = nowPage <= 1;
+    nextBtn.disabled = nowPage >= maxPage;
+
+    // 关键：每翻一页就保存当前页码，永久记忆
+    localStorage.setItem("readPage", nowPage);
+
+    // 翻页回到顶部
+    window.scrollTo(0, 0);
+}
+
+prevBtn.onclick = () => {
+    if(nowPage > 1){
+        nowPage--;
+        render();
+    }
+};
+
+nextBtn.onclick = () => {
+    if(nowPage < maxPage){
+        nowPage++;
+        render();
+    }
+};
+
+goBtn.onclick = () => {
+    let p = parseInt(jumpInp.value);
+    if(isNaN(p)) return;
+    p = Math.max(1, Math.min(p, maxPage));
+    nowPage = p;
+    render();
+};
+
+jumpInp.addEventListener("keydown", e => {
+    if(e.key === "Enter") goBtn.click();
+});
+</script>
+</body>
+</html>
